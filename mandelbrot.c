@@ -3,13 +3,83 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glad/glad.h>
+#include <math.h>
+
+static unsigned int programId;
+static unsigned int vertId;
+static unsigned int fragId;
+
+static int leftPressed = 0;
+
+//Uniform locations
+static int zoomUniformLocation;
+static int centerUniformLocation;
+static int iterationsUniformLocation;
+
+static double zoomFactor = 1.0f;
+
+#define WINDOW_DEFAULT_WIDTH 1280.0f
+#define WINDOW_DEFAULT_HEIGHT 640.0f
+#define DEFAULT_ASPECT 640.0f / 1280.0f
+
+#define ZOOM_AMOUNT 1.03
+
+void handleWinResize(GLFWwindow *win, int newWidth, int newHeight)
+{
+	glViewport(0, 0, newWidth, newHeight);
+	glUniform2d(zoomUniformLocation, 0.5f * (double)(newHeight) / (double)(newWidth) * 1.0f / (DEFAULT_ASPECT) * zoomFactor, 1.0f * zoomFactor);
+}
+
+void handleMouseScroll(GLFWwindow *win, double xoff, double yoff)
+{
+	if(yoff <= 0.0)
+		zoomFactor *= 1.0 / ZOOM_AMOUNT;
+	else if(yoff >= 0.0)
+		zoomFactor *= ZOOM_AMOUNT;
+
+	//Get window dimensions
+	int height, width;
+	glfwGetWindowSize(win, &width, &height); 
+
+	glUniform2d(zoomUniformLocation, 0.5 * (double)(height) / (double)(width) * 1.0 / (DEFAULT_ASPECT) * zoomFactor, 1.0 * zoomFactor);
+	glUniform1i(iterationsUniformLocation, (1.0 + log2(zoomFactor) / 64.0) * 128.0);
+}
+
+void handleMouseInput(GLFWwindow *win, int button, int action, int mods)
+{
+	if(button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) leftPressed = 1;
+	if(button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE) leftPressed = 0;	
+}
+
+void printShaderErrors(unsigned int shader)
+{	
+	int compiled, type;	
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	glGetShaderiv(shader, GL_SHADER_TYPE, &type);
+
+	//Did not compile!
+	if(!compiled)
+	{
+		switch(type)
+		{
+		case GL_VERTEX_SHADER: fprintf(stderr, "Vertex shader failed to compile!\n"); break;
+		case GL_FRAGMENT_SHADER: fprintf(stderr, "Fragment shader failed to compile!\n"); break;
+		default: fprintf(stderr, "Shader failed to compile!\n"); break;
+		}
+
+		//Get all the error messages
+		int errLen, chWritten;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &errLen);
+		char* msg = (char*)malloc(errLen);
+		glGetShaderInfoLog(shader, errLen, &chWritten, msg);
+		fprintf(stderr, "%s", msg);
+
+		free(msg);
+	}
+}
 
 void setupShaderProgram()
 {
-	static unsigned int programId;
-	static unsigned int vertId;
-	static unsigned int fragId;
-
 	programId = glCreateProgram();
 	vertId = glCreateShader(GL_VERTEX_SHADER);
 	fragId = glCreateShader(GL_FRAGMENT_SHADER);
@@ -19,8 +89,8 @@ void setupShaderProgram()
 	FILE* frag = fopen("mandelbrot-frag.glsl", "r");
 
 	//Read the shader files
-	char* vertSrc = (char*)malloc(8192);
-	char* fragSrc = (char*)malloc(8192);
+	char* vertSrc = (char*)malloc(4096);
+	char* fragSrc = (char*)malloc(4096);
 
 	int vertAtEOF = 0,
 		fragAtEOF = 0;
@@ -68,6 +138,10 @@ void setupShaderProgram()
 	glShaderSource(fragId, 1, &fragBegin, NULL);
 	glCompileShader(vertId);
 	glCompileShader(fragId);
+	
+	printShaderErrors(vertId);
+	printShaderErrors(fragId);
+
 	glAttachShader(programId, vertId);
 	glAttachShader(programId, fragId);	
 	glLinkProgram(programId);
@@ -77,6 +151,11 @@ void setupShaderProgram()
 
 	glDeleteShader(vertId);
 	glDeleteShader(fragId);	
+
+	//Get uniforms
+	zoomUniformLocation = glGetUniformLocation(programId, "uScale");
+	centerUniformLocation = glGetUniformLocation(programId, "uCenter");
+	iterationsUniformLocation = glGetUniformLocation(programId, "uDepth");
 
 	//Close files and free memory
 	free(vertSrc);
@@ -103,7 +182,7 @@ int main(void)
 		return -1;
 	}
 
-	GLFWwindow* win = glfwCreateWindow(1280, 640, "GPU Mandelbrot Set", NULL, NULL);
+	GLFWwindow* win = glfwCreateWindow(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT, "GPU Mandelbrot Set", NULL, NULL);
 	if(!win)
 	{
 		fprintf(stderr, "Failed to create window!\n");
@@ -120,7 +199,7 @@ int main(void)
 	}
 
 	//Create a rectangle buffer object
-	float rect[] = 
+	const double rect[] = 
 	{
 		 1.0f,  1.0f,
 		-1.0f,  1.0f,
@@ -135,11 +214,14 @@ int main(void)
 	glGenBuffers(1, &buffId);
 	glBindBuffer(GL_ARRAY_BUFFER, buffId);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(rect), rect, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, NULL);
+	glVertexAttribPointer(0, 2, GL_DOUBLE, GL_FALSE, sizeof(double) * 2, NULL);
 	glEnableVertexAttribArray(0);
 
 	setupShaderProgram();
-
+	glfwSetWindowSizeCallback(win, handleWinResize);
+	glfwSetScrollCallback(win, handleMouseScroll);
+	glfwSetMouseButtonCallback(win, handleMouseInput);
+	
 	while(!glfwWindowShouldClose(win))
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -149,6 +231,46 @@ int main(void)
 		glfwPollEvents();
 
 		outputErrors();
+
+		static double centerX = 0.0f, centerY = 0.0f;	
+		static double cursorX = -1.0, cursorY = -1.0;
+
+		//Move center around
+		if(leftPressed)
+		{
+			double tempX, tempY;
+			glfwGetCursorPos(win, &tempX, &tempY);
+	
+			if(cursorX == -1.0 || cursorY == -1.0)
+			{
+				cursorX = tempX;
+				cursorY = tempY;
+				continue;
+			}
+	
+			//Get window dimensions
+			int width, height;
+			glfwGetWindowSize(win, &width, &height);
+	
+			//Get difference in mouse position
+			double xDiff = (tempX - cursorX) / (double)width;
+			double yDiff = (cursorY - tempY) / (double)height;
+	
+			centerX -= xDiff * 2.0f / zoomFactor;
+			centerY -= yDiff * 2.0f / zoomFactor;
+	
+			glUniform2d(centerUniformLocation, centerX, centerY);
+	
+			cursorX = tempX;
+			cursorY = tempY;
+		}
+		else
+		{
+			cursorX = -1.0;
+			cursorY = -1.0;
+		}
+
+		//fprintf(stderr, "Zoom: %f\n", zoomFactor);
 	}
 	
 	glfwTerminate();
