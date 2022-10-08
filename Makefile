@@ -1,6 +1,6 @@
 BIN_NAME=mandelbrot
 FLAGS=-O2
-LD_FLAGS=-Lglad -lglad -lglfw3 -lGL -lm
+LD_FLAGS=-Lglad -lglad -lglfw3 -lGL -lm -static-libgcc
 
 output: mandelbrot.c glad/libglad.a
 	cc mandelbrot.c -o $(BIN_NAME) $(FLAGS) $(LD_FLAGS) 
