@@ -1,12 +1,10 @@
 BIN_NAME=mandelbrot
 FLAGS=-O2
-LD_FLAGS=-Lglad -lglad -lglfw3 -lGL -lm -static-libgcc
+LD_FLAGS=-lglfw3 -lGL -lm -static-libgcc
+INCLUDE=-Iglad/include
 
-output: mandelbrot.c glad/libglad.a
-	cc mandelbrot.c -o $(BIN_NAME) $(FLAGS) $(LD_FLAGS) 
-
-glad/libglad.a:
-	cd glad && cmake . && make
+output: mandelbrot.c 
+	cc mandelbrot.c glad/src/glad.c -o $(BIN_NAME) $(FLAGS) $(LD_FLAGS) $(INCLUDE) 
 
 clean:
 	rm -rf $(BIN_NAME)
