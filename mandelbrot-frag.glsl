@@ -1,11 +1,13 @@
 #version 430
 
 //Some performance options
-#define DO_SECOND_PASS 1
+#define DO_SECOND_PASS 0
 #define MAX_IT_SECOND_PASS 200.0 
 
 #define MAX 2.0
 #define IN_MANDELBROT -1
+
+#define N 5.0
 
 out vec4 outColor;
 
@@ -14,20 +16,51 @@ uniform int uDepth = 128;
 in vec2 fragPos;
 uniform dvec2 uCenter = dvec2(0.0, 0.0);
 uniform dvec2 uScale = dvec2(0.5, 1.0);
+double x, y, mag;
+float angle;
+float mag_pow;
 
 int inMandelbrot(dvec2 start, dvec2 number, int depth)
 {
 	dvec2 current = start;
 	for(int i = 0; i < depth; i++)
 	{
-		if(current.x * current.x + current.y * current.y > MAX * MAX)
+		mag = sqrt(current.x * current.x + current.y * current.y);
+		if(mag > MAX)
 			return i;
 		
-		dvec2 temp;
-		temp.x = current.x * current.x - current.y * current.y + number.x;
-		temp.y = current.x * current.y * 2.0 + number.y;
+		/*dvec2 temp;
+		
+		temp = dvec2(1.0, 0.0);
+		for(int i = 0; i < 4; i++)
+		{
+			x = temp.x * current.x - temp.y * current.y;
+			y = temp.x * current.y + temp.y * current.x;
+			temp.x = x;
+			temp.y = y;
+		}	
+		temp += number;
 
 		current = temp;
+		*/
+
+		angle = atan(float(current.y / current.x));
+		mag_pow = pow(float(mag), N);
+		if(current.x > 0.0)
+		{
+			current.x = mag_pow * cos(N * angle);
+			current.y = mag_pow * sin(N * angle);
+		}
+		else if(current.x <= 0.0)
+		{
+			current.x = mag_pow * cos(N * (angle + 3.14159));
+			current.y = mag_pow * sin(N * (angle + 3.14159));
+		}
+
+		current += number;
+
+		//temp.x = current.x * current.x - current.y * current.y + number.x;
+		//temp.y = current.x * current.y * 2.0 + number.y;
 	}
 
 	return IN_MANDELBROT;
