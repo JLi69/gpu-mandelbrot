@@ -1,11 +1,13 @@
 #version 430
 
 //Some performance options
-#define DO_SECOND_PASS 1
+#define DO_SECOND_PASS 0
 #define MAX_IT_SECOND_PASS 200.0 
 
 #define MAX 2.0
 #define IN_MANDELBROT -1
+
+#define N 16.0
 
 out vec4 outColor;
 
@@ -16,20 +18,38 @@ uniform dvec2 uCenter = dvec2(0.0, 0.0);
 uniform dvec2 uScale = dvec2(0.5, 1.0);
 
 uniform dvec2 uNumber = dvec2(0.0, 0.0);
+float mag;
+float mag_pow, angle;
 
 int inMandelbrot(dvec2 number, int depth)
 {
 	dvec2 current = number;
 	for(int i = 0; i < depth; i++)
 	{
-		if(current.x * current.x + current.y * current.y > MAX * MAX)
+		mag = sqrt(float(current.x * current.x + current.y * current.y));
+		if(mag > MAX)
 			return i;
 		
-		dvec2 temp;
-		temp.x = current.x * current.x - current.y * current.y + uNumber.x;
-		temp.y = current.x * current.y * 2.0 + uNumber.y;
+		angle = atan(float(current.y / current.x));
+		mag_pow = pow(float(mag), N);
+		if(current.x > 0.0)
+		{
+			current.x = mag_pow * cos(N * angle);
+			current.y = mag_pow * sin(N * angle);
+		}
+		else if(current.x <= 0.0)
+		{
+			current.x = mag_pow * cos(N * (angle + 3.14159));
+			current.y = mag_pow * sin(N * (angle + 3.14159));
+		}
 
-		current = temp;
+		current += uNumber;
+		
+		//dvec2 temp;
+		//temp.x = current.x * current.x - current.y * current.y + uNumber.x;
+		//temp.y = current.x * current.y * 2.0 + uNumber.y;
+
+		//current = temp;
 	}
 
 	return IN_MANDELBROT;
