@@ -1,7 +1,7 @@
-# OpenGL Mandelbrot Set
+# OpenGL Julia Set
 
-This was a small project that I made where I would draw the Mandelbrot Set using OpenGL.
+This was a modification to the Mandelbrot Viewer that instead displays the Julia Set.
 
 ## Screenshot
 
-![mandelbrot-screenshot](mandelbrot.png)
+![mandelbrot-screenshot](julia.png)
