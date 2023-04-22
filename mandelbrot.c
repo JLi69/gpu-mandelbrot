@@ -15,8 +15,12 @@ static int leftPressed = 0;
 static int zoomUniformLocation;
 static int centerUniformLocation;
 static int iterationsUniformLocation;
+static int numberUniformLocation;
 
 static double zoomFactor = 1.0f;
+
+
+static double juliaNumber[2] = { 0.0, 0.0 }; 
 
 #define WINDOW_DEFAULT_WIDTH 1280.0f
 #define WINDOW_DEFAULT_HEIGHT 640.0f
@@ -156,6 +160,7 @@ void setupShaderProgram()
 	zoomUniformLocation = glGetUniformLocation(programId, "uScale");
 	centerUniformLocation = glGetUniformLocation(programId, "uCenter");
 	iterationsUniformLocation = glGetUniformLocation(programId, "uDepth");
+	numberUniformLocation = glGetUniformLocation(programId, "uNumber");
 
 	//Close files and free memory
 	free(vertSrc);
@@ -172,6 +177,26 @@ void outputErrors()
 		fprintf(stderr, "OpenGL Error: %d\n", err);
 		err = glGetError();	
 	}
+}
+
+void handleKeyInput(GLFWwindow *win, int key, int scancode, int action, int mods)
+{
+	switch(key)
+	{
+	case GLFW_KEY_UP:
+		juliaNumber[1] -= 0.001;
+		break;
+	case GLFW_KEY_DOWN:
+		juliaNumber[1] += 0.001;
+		break;
+	case GLFW_KEY_LEFT:
+		juliaNumber[0] -= 0.001;
+		break;
+	case GLFW_KEY_RIGHT:
+		juliaNumber[0] += 0.001;
+		break;
+	}
+	glUniform2d(numberUniformLocation, juliaNumber[0], juliaNumber[1]);
 }
 
 int main(void)
@@ -221,7 +246,8 @@ int main(void)
 	glfwSetWindowSizeCallback(win, handleWinResize);
 	glfwSetScrollCallback(win, handleMouseScroll);
 	glfwSetMouseButtonCallback(win, handleMouseInput);
-	
+	glfwSetKeyCallback(win, handleKeyInput);
+
 	while(!glfwWindowShouldClose(win))
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
