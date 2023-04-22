@@ -28,6 +28,8 @@ static double juliaNumber[2] = { 0.0, 0.0 };
 
 #define ZOOM_AMOUNT 1.03
 
+#define JULIA_NUMBER_CHANGE 0.003
+
 void handleWinResize(GLFWwindow *win, int newWidth, int newHeight)
 {
 	glViewport(0, 0, newWidth, newHeight);
@@ -184,16 +186,16 @@ void handleKeyInput(GLFWwindow *win, int key, int scancode, int action, int mods
 	switch(key)
 	{
 	case GLFW_KEY_UP:
-		juliaNumber[1] -= 0.001;
+		juliaNumber[1] -= JULIA_NUMBER_CHANGE;
 		break;
 	case GLFW_KEY_DOWN:
-		juliaNumber[1] += 0.001;
+		juliaNumber[1] += JULIA_NUMBER_CHANGE;
 		break;
 	case GLFW_KEY_LEFT:
-		juliaNumber[0] -= 0.001;
+		juliaNumber[0] -= JULIA_NUMBER_CHANGE;
 		break;
 	case GLFW_KEY_RIGHT:
-		juliaNumber[0] += 0.001;
+		juliaNumber[0] += JULIA_NUMBER_CHANGE;
 		break;
 	}
 	glUniform2d(numberUniformLocation, juliaNumber[0], juliaNumber[1]);
