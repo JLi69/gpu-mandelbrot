@@ -15,8 +15,12 @@ static int leftPressed = 0;
 static int zoomUniformLocation;
 static int centerUniformLocation;
 static int iterationsUniformLocation;
+static int startNumLocation;
 
 static double zoomFactor = 1.0f;
+
+#define START_NUM_CHANGE 0.003
+static double startNum[] = { 0.0, 0.0 };
 
 #define WINDOW_DEFAULT_WIDTH 1280.0f
 #define WINDOW_DEFAULT_HEIGHT 640.0f
@@ -49,6 +53,26 @@ void handleMouseInput(GLFWwindow *win, int button, int action, int mods)
 {
 	if(button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) leftPressed = 1;
 	if(button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE) leftPressed = 0;	
+}
+
+void handleKeyInput(GLFWwindow *win, int key, int scancode, int action, int mods)
+{
+	switch(key)
+	{
+	case GLFW_KEY_UP:
+		startNum[1] += START_NUM_CHANGE;
+		break;
+	case GLFW_KEY_DOWN:
+		startNum[1] -= START_NUM_CHANGE;
+		break;
+	case GLFW_KEY_RIGHT:
+		startNum[0] += START_NUM_CHANGE;
+		break;
+	case GLFW_KEY_LEFT:
+		startNum[0] -= START_NUM_CHANGE;
+		break;
+	}
+	glUniform2d(startNumLocation, startNum[0], startNum[1]);
 }
 
 void printShaderErrors(unsigned int shader)
@@ -156,6 +180,7 @@ void setupShaderProgram()
 	zoomUniformLocation = glGetUniformLocation(programId, "uScale");
 	centerUniformLocation = glGetUniformLocation(programId, "uCenter");
 	iterationsUniformLocation = glGetUniformLocation(programId, "uDepth");
+	startNumLocation = glGetUniformLocation(programId, "uStartNum");
 
 	//Close files and free memory
 	free(vertSrc);
@@ -221,7 +246,8 @@ int main(void)
 	glfwSetWindowSizeCallback(win, handleWinResize);
 	glfwSetScrollCallback(win, handleMouseScroll);
 	glfwSetMouseButtonCallback(win, handleMouseInput);
-	
+	glfwSetKeyCallback(win, handleKeyInput);
+
 	while(!glfwWindowShouldClose(win))
 	{
 		glClear(GL_COLOR_BUFFER_BIT);

@@ -14,6 +14,7 @@ uniform int uDepth = 128;
 in vec2 fragPos;
 uniform dvec2 uCenter = dvec2(0.0, 0.0);
 uniform dvec2 uScale = dvec2(0.5, 1.0);
+uniform dvec2 uStartNum = dvec2(0.0, 0.0);
 
 int inMandelbrot(dvec2 start, dvec2 number, int depth)
 {
@@ -37,7 +38,7 @@ void main()
 {
 	outColor = vec4(1.0, 1.0, 1.0, 1.0);
 
-	float steps = float(inMandelbrot(dvec2(0.0, 0.0), dvec2(double(fragPos.x) / uScale.x, double(fragPos.y) / uScale.y) + uCenter, uDepth));	
+	float steps = float(inMandelbrot(uStartNum, dvec2(double(fragPos.x) / uScale.x, double(fragPos.y) / uScale.y) + uCenter, uDepth));	
 
 	if(steps == IN_MANDELBROT)
 		outColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -58,7 +59,7 @@ void main()
 			{
 				for(double y = -1.0; y <= 1.0; y++)
 				{
-					float stepVal = inMandelbrot(dvec2(0.0, 0.0), dvec2(double(fragPos.x) / uScale.x, double(fragPos.y) / uScale.y) + uCenter + dvec2(offset.x * x, offset.y * y), uDepth);
+					float stepVal = inMandelbrot(uStartNum, dvec2(double(fragPos.x) / uScale.x, double(fragPos.y) / uScale.y) + uCenter + dvec2(offset.x * x, offset.y * y), uDepth);
 					if(stepVal == IN_MANDELBROT)
 						continue;
 
